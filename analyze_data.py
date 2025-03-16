@@ -18,13 +18,11 @@ def process_file(file_name):
 
     data = pd.read_json(local_path)
     print(f"Analysing file: {file_name}")
-    print(data.head())
-
-    print(data.describe())
+    count_of_pages = data.groupby('page').size().reset_index(name='count')
+    print(count_of_pages)
     output_filename = file_name.split(".")[0]
     output_file = '/tmp/processed_' + os.path.basename(output_filename) + '.csv'
-    print(output_file)
-    data.to_csv(output_file, index=False)
+    count_of_pages.to_csv(output_file, index=False)
     s3_client.upload_file(output_file, bucket_name, f'processed/{os.path.basename(output_file)}')
     print(f"File processed and saved to: processed/{os.path.basename(output_file)}")
 
