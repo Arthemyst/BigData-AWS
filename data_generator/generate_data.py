@@ -1,7 +1,8 @@
 import datetime
 import json
+import os
 import random
-
+from tools.config import CustomEnvironment
 import boto3
 
 
@@ -39,20 +40,25 @@ class DataGenerator:
 
 
 class DataUploader:
-    S3_BUCKET = "big-data-pipeline-bucket"
+    S3_BUCKET = CustomEnvironment.get_aws_s3_bucket()
 
     @staticmethod
     def upload_to_s3(filename: str) -> None:
+        if not os.path.exists(filename):
+            print(f"❌ File {filename} does not exist! Upload not possible.")
+            return
+
         s3_client = boto3.client("s3")
 
         try:
-            s3_client.upload_file(filename, DataUploader.S3_BUCKET, f"data/{filename}")
-            print(f"File {filename} uploaded to S3 to directory data/")
+            s3_client.upload_file(filename, DataUploader.S3_BUCKET, f"big-data-1/{filename}")
+            print(f"✅ File {filename} loaded to S3 t directory 'big-data-1/'.")
+
         except Exception as e:
-            print(f"Error during file sending to S3: {e}")
+            print(f"❌ Error during loading {filename} file to S3: {e}")
 
 
 if __name__ == "__main__":
-    print(DataGenerator.generate_data())
-    # filename = DataGenerator.save_data_to_file()
-    # DataUploader.upload_to_s3(filename)
+    for _ in range(100):
+        filename = DataGenerator.save_data_to_file()
+        DataUploader.upload_to_s3(filename)
