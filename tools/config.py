@@ -1,5 +1,4 @@
 import os
-
 import environ
 
 
@@ -11,6 +10,7 @@ class CustomEnvironment:
 
     _aws_access_key = env.str("AWS_ACCESS_KEY")
     _aws_key_id = env.str("AWS_KEY_ID")
+    _aws_s3_bucket = env.str("S3_BUCKET")
 
     @classmethod
     def get_aws_password(cls) -> str:
@@ -19,3 +19,7 @@ class CustomEnvironment:
     @classmethod
     def get_aws_user(cls) -> str:
         return cls._aws_key_id
+
+    @classmethod
+    def get_aws_s3_bucket(cls) -> str:
+        return cls._aws_s3_bucket
