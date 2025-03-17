@@ -1,39 +1,45 @@
 import os
-
 import boto3
-import pandas as pd
-
-from tools.config import CustomEnvironment
+import json
 
 s3_client = boto3.client('s3')
 
-bucket_name = CustomEnvironment.get_aws_s3_bucket()
-files_directory = 'big-data-1/'
 
-
-def process_file(file_name):
+def process_file(file_name, bucket_name):
     local_path = '/tmp/' + os.path.basename(file_name)
     print(f"Loading file: {file_name} from S3")
+
     s3_client.download_file(bucket_name, file_name, local_path)
 
-    data = pd.read_json(local_path)
     print(f"Analysing file: {file_name}")
-    count_of_pages = data.groupby('page').size().reset_index(name='count')
-    print(count_of_pages)
+
     output_filename = file_name.split(".")[0]
     output_file = '/tmp/processed_' + os.path.basename(output_filename) + '.csv'
-    count_of_pages.to_csv(output_file, index=False)
+    with open(output_file, 'w') as f:
+        f.write('')
+
     s3_client.upload_file(output_file, bucket_name, f'processed/{os.path.basename(output_file)}')
     print(f"File processed and saved to: processed/{os.path.basename(output_file)}")
 
 
-if __name__ == "__main__":
-    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=files_directory)
-    if 'Contents' in response:
-        for obj in response['Contents']:
-            file_key = obj['Key']
+def lambda_handler(event, context):
+    print("Received event:", json.dumps(event, indent=2))
 
-            if file_key.endswith('.json'):
-                process_file(file_key)
-    else:
-        print(f'No files in directory: {files_directory}')
+    try:
+        bucket_name = event['Records'][0]['s3']['bucket']['name']
+        file_key = event['Records'][0]['s3']['object']['key']
+
+        print(f"Bucket: {bucket_name}, File: {file_key}")
+
+        if file_key.endswith('.json'):
+            process_file(file_key, bucket_name)
+        else:
+            print(f"Skipped file: {file_key}, it's not a JSON file.")
+
+    except Exception as e:
+        print(f"Error processing event: {e}")
+
+    return {
+        'statusCode': 200,
+        'body': 'Processing complete'
+    }
